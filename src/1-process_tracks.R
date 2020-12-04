@@ -329,6 +329,7 @@ for(track.file in tracks.files){
     moments<-list()
     stops.ids<-list()
     stop.ids<-c()
+    speed.lowess<-c()
 
     # for(pt.id in track.spdf@data$id.sort[-length(track.spdf)]){
     for(pt.id in track.spdf@data$id.sort){
@@ -340,6 +341,9 @@ for(track.file in tracks.files){
       # Compute cumulative time and distance for segment
       time<-time + pt.cur$time.diff
       dist<-dist + pt.cur$dist
+      
+      # Track speed
+      speed.lowess<-c(speed.lowess, pt.cur$speed.lowess)
       
       if(pt.cur$movement == 0){
 
@@ -353,7 +357,9 @@ for(track.file in tracks.files){
         if(pt.cur$movement != pt.next$movement){
         
           # Update moments list with data of the segment
-          moments<-list.append(moments, c(time = time, dist = dist, movement = pt.cur$movement))
+          moments<-list.append(moments, c(time = time, dist = dist, 
+                                          movement = pt.cur$movement,
+                                          speed.lowess = mean(speed.lowess)))
           if(!is.null(stop.ids)){
             stops.ids<-list.append(stops.ids, stop.ids)
           }
@@ -361,13 +367,16 @@ for(track.file in tracks.files){
           time<-0
           dist<-0
           stop.ids<-c()
+          speed.lowess<-c()
         
         } 
         
       }else{
         
         # Update moments list with data of the segment
-        moments<-list.append(moments, c(time = time, dist = dist, movement = pt.cur$movement))
+        moments<-list.append(moments, c(time = time, dist = dist, 
+                                        movement = pt.cur$movement,
+                                        speed.lowess = mean(speed.lowess)))
         
       }
       
@@ -417,11 +426,13 @@ for(track.file in tracks.files){
     speed.mean.movement<-mean(movements$dist/movements$time*3.6)
     duration.movement<-sum(movements$time/60)
     dist.movement<-sum(movements$dist)
+    speed.mean.movement.lowess<-mean(movements$speed.lowess)
     # Compute non-movements stats
     stops<-moments[which(moments$movement == 0),]
     speed.mean.stops<-mean(stops$dist/stops$time*3.6)
     duration.stops<-sum(stops$time/60)
     dist.stops<-sum(stops$dist)
+    speed.mean.stops.lowess<-mean(stops$speed.lowess)
     stops.time.summary<-summary(moments[which(moments$movement == 0), "time"])
     stops.dist.summary<-summary(moments[which(moments$movement == 0), "dist"])
     stops.count<-nrow(stops)  
@@ -485,9 +496,11 @@ for(track.file in tracks.files){
                                                duration.movement=duration.movement, 
                                                dist.movement=dist.movement, 
                                                speed.mean.movement=speed.mean.movement,
+                                               speed.mean.movement.lowess=speed.mean.movement.lowess,
                                                duration.stops=duration.stops,
                                                dist.stops=dist.stops,
                                                speed.mean.stops=speed.mean.stops,
+                                               speed.mean.stops.lowess=speed.mean.stops.lowess,
                                                stops.count=stops.count,
                                                stops.dist.summary=stops.dist.summary, 
                                                stops.time.summary=stops.time.summary
@@ -518,7 +531,7 @@ for(track.file in tracks.files){
     labs(x="Time", y="Speed (km/h)", 
     title=paste0("Start time: ", time.start, " / Duration: ", round(duration.total, 2), " min"))
     # print(plot.speed)
-    ggsave(plot.speed, filename=file.path(wd, dir.outputs, dir.graphs, paste0("speed-vs-time-", track.name, ".png")), device="png", dpi=300, units="cm", width=20, height=15)
+    ggsave(plot.speed, filename=file.path(wd, dir.outputs, dir.graphs, dir.speed, paste0("speed-vs-time-", track.name, ".png")), device="png", dpi=300, units="cm", width=20, height=15)
   
   }
   
@@ -576,9 +589,11 @@ summary<-data.frame(track.name=sapply(summary.list, "[[", "name"),
                     duration.movement=sapply(summary.list, "[[", "duration.movement"), 
                     dist.movement=sapply(summary.list, "[[", "dist.movement"), 
                     speed.mean.movement=sapply(summary.list, "[[", "speed.mean.movement"),
+                    speed.mean.movement.lowess=sapply(summary.list, "[[", "speed.mean.movement.lowess"),
                     duration.stops=sapply(summary.list, "[[", "duration.stops"), 
                     dist.stops=sapply(summary.list, "[[", "dist.stops"), 
-                    speed.mean.stops=sapply(summary.list, "[[", "speed.mean.stops")
+                    speed.mean.stops=sapply(summary.list, "[[", "speed.mean.stops"),
+                    speed.mean.stops.lowess=sapply(summary.list, "[[", "speed.mean.stops.lowess")
                     # ele.mean=sapply(summary.list, "[[", "ele.mean"), 
                     # ele.lowess.mean=sapply(summary.list, "[[", "ele.lowess.mean"), 
                     # climb.total=sapply(summary.list, "[[", "climb.total")
@@ -624,5 +639,56 @@ hist.speed<-ggplot(data = speed.full, aes(x = values, color = ind, fill = ind))+
 hist.speed
 # Save to png file in the output directory
 ggsave(filename = file.path(wd, dir.outputs, "histogram-speed-full.png"))
+
+
+# Correlation between distance and speed per track ------------------------
+
+# Duration | Total distance in movement
+cor.duration.distmvt<-ggplot(data = summary, aes(x = duration, y = dist.movement))+
+  geom_point()+
+  theme_bw()+
+  labs(title = "Correlation between total duration of visit and distance of movement",
+       x = "Total duration (min)",
+       y = "Distance during movement (m)")
+cor.duration.distmvt
+
+ggsave(filename = file.path(wd, dir.outputs, dir.graphs, "corr-duration-distmvt.png"), 
+       plot = cor.duration.distmvt, device = "png")
+
+# Duration | Total distance
+cor.duration.disttot<-ggplot(data = summary, aes(x = duration, y = distance))+
+  geom_point()+
+  theme_bw()+
+  labs(title = "Correlation between total duration of visit and total distance",
+       x = "Total duration (minutes)",
+       y = "Total distance (m)")
+cor.duration.disttot
+
+ggsave(filename = file.path(wd, dir.outputs, dir.graphs, "corr-duration-disttot.png"), 
+       plot = cor.duration.disttot, device = "png")
+
+# Duration | Smoothed speed during movement phases
+cor.duration.speedmvt<-ggplot(data = summary, aes(x = duration, y = speed.mean.movement.lowess))+
+  geom_point()+
+  theme_bw()+
+  labs(title = "Correlation between total duration of visit and smoothed displacement speed",
+       x = "Total duration (minutes)",
+       y = "Smoothed displacement speed (km/h)")
+cor.duration.speedmvt
+
+ggsave(filename = file.path(wd, dir.outputs, dir.graphs, "corr-duration-speedmvt.png"), 
+       plot = cor.duration.speedmvt, device = "png")
+
+# Duration | Smoothed speed during non-movement phases
+cor.duration.speedstops<-ggplot(data = summary, aes(x = duration, y = speed.mean.stops.lowess))+
+  geom_point()+
+  theme_bw()+
+  labs(title = "Correlation between total duration of visit and smoothed speed during \"stops\"",
+       x = "Total duration (minutes)",
+       y = "Smoothed speed during \"stops\" (km/h)")
+cor.duration.speedstops
+
+ggsave(filename = file.path(wd, dir.outputs, dir.graphs, "corr-duration-speedstops.png"), 
+       plot = cor.duration.speedstops, device = "png")
 
 

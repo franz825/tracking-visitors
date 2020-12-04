@@ -389,7 +389,7 @@ aoi.azimuts.prior.count.yes<-ggplot(data = aoi.summary.prior %>% filter(prior ==
   scale_fill_manual(values=c("#00AFBB", "#E7B800", "#4B5F07", "#DA5F07"))
 aoi.azimuts.prior.count.yes
 
-ggsave(filename = file.path(wd, dir.outputs, dir.graphs, dir.aoi, "aoi-directions-count-prior-yes.png"), plot = aoi.azimuts.count.yes, device = "png")
+ggsave(filename = file.path(wd, dir.outputs, dir.graphs, dir.aoi, "aoi-directions-count-prior-yes.png"), plot = aoi.azimuts.prior.count.yes, device = "png")
 
 # Histogram for directions within AOIS - ABSOLUTE VALUES
 aoi.azimuts.prior.count.no<-ggplot(data = aoi.summary.prior %>% filter(prior == "no"), aes(x = azimut.name, y = count, fill = factor(aoi.id)))+
@@ -402,7 +402,7 @@ aoi.azimuts.prior.count.no<-ggplot(data = aoi.summary.prior %>% filter(prior == 
   scale_fill_manual(values=c("#00AFBB", "#E7B800", "#4B5F07", "#DA5F07"))
 aoi.azimuts.prior.count.no
 
-ggsave(filename = file.path(wd, dir.outputs, dir.graphs, dir.aoi, "aoi-directions-count-prior-no.png"), plot = aoi.azimuts.count.no, device = "png")
+ggsave(filename = file.path(wd, dir.outputs, dir.graphs, dir.aoi, "aoi-directions-count-prior-no.png"), plot = aoi.azimuts.prior.count.no, device = "png")
 
 # Histogram for directions within AOIS - RELATIVE VALUES
 aoi.azimuts.prior.freq.yes<-ggplot(data = aoi.summary.prior %>% filter(prior == "yes"), aes(x = azimut.name, y = freq.rel, fill = factor(aoi.id)))+
@@ -415,7 +415,7 @@ aoi.azimuts.prior.freq.yes<-ggplot(data = aoi.summary.prior %>% filter(prior == 
   scale_fill_manual(values=c("#00AFBB", "#E7B800", "#4B5F07", "#DA5F07"))
 aoi.azimuts.prior.freq.yes
 
-ggsave(filename = file.path(wd, dir.outputs, dir.graphs, dir.aoi, "aoi-directions-freq-prior-yes.png"), plot = aoi.azimuts.freq.yes, device = "png")
+ggsave(filename = file.path(wd, dir.outputs, dir.graphs, dir.aoi, "aoi-directions-freq-prior-yes.png"), plot = aoi.azimuts.prior.freq.yes, device = "png")
 
 # Histogram for directions within AOIS - RELATIVE VALUES
 aoi.azimuts.prior.freq.no<-ggplot(data = aoi.summary.prior %>% filter(prior == "no"), aes(x = azimut.name, y = freq.rel, fill = factor(aoi.id)))+
@@ -428,8 +428,7 @@ aoi.azimuts.prior.freq.no<-ggplot(data = aoi.summary.prior %>% filter(prior == "
   scale_fill_manual(values=c("#00AFBB", "#E7B800", "#4B5F07", "#DA5F07"))
 aoi.azimuts.prior.freq.no
 
-ggsave(filename = file.path(wd, dir.outputs, dir.graphs, dir.aoi, "aoi-directions-freq-prior-no.png"), plot = aoi.azimuts.freq.no, device = "png")
-
+ggsave(filename = file.path(wd, dir.outputs, dir.graphs, dir.aoi, "aoi-directions-freq-prior-no.png"), plot = aoi.azimuts.prior.freq.no, device = "png")
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
