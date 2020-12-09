@@ -3,6 +3,17 @@ rm(list=ls())
 
 # README ------------------------------------------------------------------
 
+# The script "process_tracks" reads raw data from visitors tracks. It computes
+# for each point of the track : speed, direction, time, smoothed speed,... 
+# If a lower speed threshold is set, each track is divided in "movement" and
+# "non-movement" segments, to allow further analyses. 
+# Main outputs are: 
+#   - a table containing the summary for each track (summary-tracks.csv)
+#   - tracks shapefiles as points and lines.
+#   - point shapefiles of movement and non-movement segments.
+#   - centroids for each non-movement segment for each track. 
+#   - graphs of visitor's speed along the track. 
+
 # File structure 
 # -- Working directory (wd)
 #   -- src (everything but data)
@@ -37,6 +48,9 @@ dir.tracks<-"tracks"
 dir.aoi<-"aoi"
 
 # Variables ---------------------------------------------------------------
+
+# Name of study site
+area.name<-"malia"
 
 # Delete outputs directory before running analysis
 delete.outputs<-TRUE
@@ -117,6 +131,7 @@ dir.stops<-"stops"
 dir.centroids<-"centroids"
 dir.full<-"full"
 dir.speed<-"speed"
+dir.outputs<-paste0(area.name, '-', dir.outputs)
 
 # Delete outputs directory
 if(delete.outputs == TRUE){
@@ -176,7 +191,8 @@ centroids.stops.all<-data.frame()
 # aoi.spdf<-readOGR(dsn=file.path(wd, dir.inputs, dir.aoi, "AOI_for_LMD_poly-utm.shp"), stringsAsFactors=FALSE)
 # aoi.spdf<-spTransform(aoi.spdf, CRS(id.proj))
 
-# track.file<-tracks.files[4]
+# tracks.files<-tracks.files[1:2]
+# track.file<-tracks.files[1]
 for(track.file in tracks.files){
   
   # track name
@@ -312,12 +328,12 @@ for(track.file in tracks.files){
     # Extract points which are characterised by a speed greater than the lower speed threshold
     track.spdf.movement<-track.spdf[which(track.spdf@data$speed.lowess > speed.threshold.lower),]
     # Save current track to POINT shapefile
-    writeOGR(obj=track.spdf.movement, dsn=file.path(wd, dir.outputs, dir.shp, dir.movement, paste0(track.name, "-movement")), layer=track.name, driver="ESRI Shapefile", overwrite_layer=TRUE)
+    writeOGR(obj=track.spdf.movement, dsn=file.path(wd, dir.outputs, dir.shp, dir.movement), layer=paste0("pts-mvts-", track.id), driver="ESRI Shapefile", overwrite_layer=TRUE)
    
     # Extract points which are characterised by a speed lower than the lower speed threshold
     track.spdf.stops<-track.spdf[which(track.spdf@data$speed.lowess <= speed.threshold.lower),]
     # Save current track to POINT shapefile
-    writeOGR(obj=track.spdf.stops, dsn=file.path(wd, dir.outputs, dir.shp, dir.stops, paste0(track.name, "-stops")), layer=track.name, driver="ESRI Shapefile", overwrite_layer=TRUE)
+    writeOGR(obj=track.spdf.stops, dsn=file.path(wd, dir.outputs, dir.shp, dir.stops, paste0("stops-", track.id)), layer=paste0("pts-stops-", track.id, "-full"), driver="ESRI Shapefile", overwrite_layer=TRUE)
     
     # In the main track file, add a "movement" column (movement == 1) for further analysis
     track.spdf@data$movement<-0
@@ -403,7 +419,7 @@ for(track.file in tracks.files){
   # vectorField(xpos=track.vec@data$lon, ypos=track.vec@data$lat, u=track.vec@data$azimut.rad, v=1, vecspec="rad")
   
   # Save current gpx to POINT shapefile
-  writeOGR(obj=track.spdf, dsn=file.path(wd, dir.outputs, dir.shp, dir.points, paste0(track.name, "-points.shp")), layer=track.name, driver="ESRI Shapefile", overwrite_layer=TRUE)
+  writeOGR(obj=track.spdf, dsn=file.path(wd, dir.outputs, dir.shp, dir.points, paste0("pts-track-",track.id,".shp")), layer=track.name, driver="ESRI Shapefile", overwrite_layer=TRUE)
   
   # Summary metrics ----------------------------------------------------------
   
@@ -461,7 +477,7 @@ for(track.file in tracks.files){
       # Extract track part for current stop
       stop<-track.spdf[which(track.spdf@data$id.sort %in% stops.ids[[stop.id]]),]
       # Save stop as shapefile
-      writeOGR(obj = stop, dsn = file.path(wd, dir.outputs, dir.shp, dir.stops, paste0(track.name, "-stops"), paste0(track.name, "-stop-", stop.id, ".shp")), 
+      writeOGR(obj = stop, dsn = file.path(wd, dir.outputs, dir.shp, dir.stops, paste0("stops-", track.id), paste0("pts-stops-", track.id, "-stop-", stop.id, ".shp")), 
       layer=paste0(track.name, "-stop-", stop.id), overwrite_layer = TRUE, driver="ESRI Shapefile")
       
       # Compute centroid of current stop and collect in dataframe
@@ -481,7 +497,7 @@ for(track.file in tracks.files){
     coordinates(centroids) = ~ lon+lat
     projection(centroids) = CRS(id.proj)
     # Save centroids of track as shapefile
-    writeOGR(obj = centroids, dsn = file.path(wd, dir.outputs, dir.shp, dir.centroids, paste0(track.name, "-stops-centroids.shp")), 
+    writeOGR(obj = centroids, dsn = file.path(wd, dir.outputs, dir.shp, dir.centroids, paste0("stops-", track.id, "-centroids.shp")), 
     layer = paste0(track.name, "-stops-centroids"), overwrite_layer = TRUE, driver = "ESRI Shapefile")
   
   }
@@ -531,7 +547,7 @@ for(track.file in tracks.files){
     labs(x="Time", y="Speed (km/h)", 
     title=paste0("Start time: ", time.start, " / Duration: ", round(duration.total, 2), " min"))
     # print(plot.speed)
-    ggsave(plot.speed, filename=file.path(wd, dir.outputs, dir.graphs, dir.speed, paste0("speed-vs-time-", track.name, ".png")), device="png", dpi=300, units="cm", width=20, height=15)
+    ggsave(plot.speed, filename=file.path(wd, dir.outputs, dir.graphs, dir.speed, paste0("speed-vs-time-track-", track.id, ".png")), device="png", dpi=300, units="cm", width=20, height=15)
   
   }
   
@@ -573,7 +589,7 @@ for(track.file in tracks.files){
     #                   data=data.frame(x=1, y=1, row.names = "id"))
     
     # Save current gpx to LINE shapefile
-    writeOGR(obj=track.spdf.line, dsn=file.path(wd, dir.outputs, dir.shp, dir.lines, paste0(track.name, "-lines.shp")), layer=paste0(track.name, "-lines"), driver="ESRI Shapefile", overwrite_layer=TRUE)
+    writeOGR(obj=track.spdf.line, dsn=file.path(wd, dir.outputs, dir.shp, dir.lines, paste0("lines-track-", track.id, ".shp")), layer=paste0(track.name, "-lines"), driver="ESRI Shapefile", overwrite_layer=TRUE)
     
   }
 
@@ -608,7 +624,7 @@ gpx.df.full<-do.call("rbind", tracks.df.list)
 track.spdf.full<-SpatialPointsDataFrame(gpx.df.full[, c("lon", "lat")], gpx.df.full)
 proj4string(track.spdf.full)<-CRS(id.proj)
 # Save all gpx to shapefile
-writeOGR(obj=track.spdf.full, dsn=file.path(wd, dir.outputs, dir.shp, dir.full, "gpx-full.shp"), layer="gpx-full", driver="ESRI Shapefile", overwrite_layer=TRUE)
+writeOGR(obj=track.spdf.full, dsn=file.path(wd, dir.outputs, dir.shp, dir.full, "tracks-full.shp"), layer="tracks-full", driver="ESRI Shapefile", overwrite_layer=TRUE)
 
 # Convert centroids of stops for all tracks to spatial data frame
 coordinates(centroids.stops.all) = ~ lon+lat
@@ -621,11 +637,11 @@ writeOGR(obj = centroids.stops.all, dsn = file.path(wd, dir.outputs, dir.shp, di
 # Extract points which are characterised by a speed greater than the speed threshold
 track.spdf.full.stops<-track.spdf.full[which(track.spdf.full@data$speed.kmh > speed.threshold.lower),]
 # Save speed thresholded gpx file to shapefile
-writeOGR(obj=track.spdf.full.stops, dsn=file.path(wd, dir.outputs, dir.shp, dir.full, "gpx-full-movement.shp"), layer="gpx-full-movement", driver="ESRI Shapefile", overwrite_layer=TRUE)
+writeOGR(obj=track.spdf.full.stops, dsn=file.path(wd, dir.outputs, dir.shp, dir.full, "tracks-full-movement.shp"), layer="tracks-full-movement", driver="ESRI Shapefile", overwrite_layer=TRUE)
 # Extract points which are characterised by a speed greater than the speed threshold
 track.spdf.full.stops<-track.spdf.full[which(track.spdf.full@data$speed.kmh <= speed.threshold.lower),]
 # Save speed thresholded gpx file to shapefile
-writeOGR(obj=track.spdf.full.stops, dsn=file.path(wd, dir.outputs, dir.shp, dir.full, "gpx-full-stops.shp"), layer="gpx-full-stops", driver="ESRI Shapefile", overwrite_layer=TRUE)
+writeOGR(obj=track.spdf.full.stops, dsn=file.path(wd, dir.outputs, dir.shp, dir.full, "tracks-full-stops.shp"), layer="tracks-full-stops", driver="ESRI Shapefile", overwrite_layer=TRUE)
 
 
 # Histogram all speeds ----------------------------------------------------

@@ -3,6 +3,17 @@ rm(list=ls())
 
 # README ------------------------------------------------------------------
 
+# The script "directions_in_aois" computes the mean direction of each visitor
+# in each area of interest defined by the user. 
+# The input is one shapefile containing all areas of interest for which mean 
+# direction should be computed. 
+# Main output is a line shapefile for each AOI, containing mean direction 
+# vectors for each visitor. 
+# For each AOI, frequencies of mean directions is computed. Associated bar plots
+# are created. 
+# Mean directions are summarized by intervals of 45°, from 0 to 360° 
+# (clockwise from the "north")
+
 # File structure 
 # -- Working directory (wd)
 #   -- src (everything but data)
@@ -33,10 +44,13 @@ wd<-"/home/franz/Documents/work/repos/tracking-visitors"
 dir.outputs<-"outputs"
 dir.inputs<-"inputs"
 # Subfolders of inputs directory
-dir.tracks<-"tracks" 
+dir.tracks<-"tracks"
 dir.aoi<-"aoi"
 
 # Variables ---------------------------------------------------------------
+
+# Name of study site
+area.name<-"malia"
 
 # Delete outputs directory before running analysis
 delete.outputs<-FALSE
@@ -89,11 +103,13 @@ dir.shp<-"shp" # subfolder of outputs containing all spatial data
 dir.lines<-"lines" # tracks as line shp
 dir.points<-"points" # tracks as point shp
 dir.movement<-"movement" # will contain tracks with points which have a speed higher than threshold (lower threshold)
-dir.meandir<-"aoi"
+dir.meandir<-"mean-dir"
+
 dir.tables<-"tables"
 dir.stops<-"stops"
 dir.centroids<-"centroids"
 dir.full<-"full"
+dir.outputs<-paste0(area.name, '-', dir.outputs)
 
 # Delete outputs directory
 if(delete.outputs == TRUE){
@@ -106,17 +122,14 @@ if(delete.outputs == TRUE){
 if(!dir.exists(file.path(wd, dir.outputs, dir.shp, dir.meandir))){
   dir.create(file.path(wd, dir.outputs, dir.shp, dir.meandir))
 }
-if(!dir.exists(file.path(wd, dir.outputs, dir.shp, dir.meandir, dir.tables))){
-  dir.create(file.path(wd, dir.outputs, dir.shp, dir.meandir, dir.tables))
-}
-if(!dir.exists(file.path(wd, dir.outputs, dir.shp, dir.meandir, dir.shp))){
-  dir.create(file.path(wd, dir.outputs, dir.shp, dir.meandir, dir.shp))
-}
-if(!dir.exists(file.path(wd, dir.outputs, dir.graphs, dir.aoi))){
-  dir.create(file.path(wd, dir.outputs, dir.graphs, dir.aoi))
+if(!dir.exists(file.path(wd, dir.outputs, dir.graphs, dir.meandir))){
+  dir.create(file.path(wd, dir.outputs, dir.graphs, dir.meandir))
 }
 if(!dir.exists(file.path(wd, dir.outputs, dir.tables))){
   dir.create(file.path(wd, dir.outputs, dir.tables))
+}
+if(!dir.exists(file.path(wd, dir.outputs, dir.tables, dir.meandir))){
+  dir.create(file.path(wd, dir.outputs, dir.tables, dir.meandir))
 }
 
 # Script AOI computation --------------------------------------------------
@@ -129,7 +142,7 @@ aoi.spdf<-readOGR(dsn = file.path(wd, dir.inputs, dir.aoi, "aoi_for_mean_dir.shp
 aoi.spdf<-spTransform(aoi.spdf, id.proj)
 
 # Read shapefile containing points data for all tracks
-track.spdf.full<-readOGR(dsn = file.path(wd, dir.outputs, dir.shp, dir.full, "gpx-full.shp"), stringsAsFactors = FALSE)
+track.spdf.full<-readOGR(dsn = file.path(wd, dir.outputs, dir.shp, dir.full, "tracks-full.shp"), stringsAsFactors = FALSE)
 
 # Read Visitors classes
 visitors<-read.csv(file = file.path(wd, dir.inputs, dir.tables, "visitors-categories.csv"), stringsAsFactors = FALSE)
@@ -307,12 +320,12 @@ for(aoi.id in aoi.spdf@data$Id){
   aoi.summary.prior<-rbind(aoi.summary.prior, aoi.lines.freq.prior)
   
   # Save tables of frequencies and aoi.lines
-  write.csv2(aoi.lines@data, file=file.path(wd, dir.outputs, dir.shp, dir.meandir, dir.tables, paste0("aoi-", aoi.id, "-vectors.csv")))
-  write.csv2(aoi.lines.freq, file=file.path(wd, dir.outputs, dir.shp, dir.meandir, dir.tables, paste0("aoi-", aoi.id, "-azimut-freq.csv")))
-  write.csv2(aoi.lines.freq.prior, file=file.path(wd, dir.outputs, dir.shp, dir.meandir, dir.tables, paste0("aoi-", aoi.id, "-azimut-freq-prior.csv")))
+  write.csv2(aoi.lines@data, file=file.path(wd, dir.outputs, dir.tables, dir.meandir, paste0("aoi-", aoi.id, "-vectors.csv")))
+  write.csv2(aoi.lines.freq, file=file.path(wd, dir.outputs, dir.tables, dir.meandir, paste0("aoi-", aoi.id, "-azimut-freq.csv")))
+  write.csv2(aoi.lines.freq.prior, file=file.path(wd, dir.outputs, dir.tables, dir.meandir, paste0("aoi-", aoi.id, "-azimut-freq-prior.csv")))
   
   # Save current aoi vectors to list
-  writeOGR(obj=aoi.lines, dsn=file.path(wd, dir.outputs, dir.shp, dir.meandir, dir.shp, paste0("aoi-", aoi.id, "-vectors.shp")), 
+  writeOGR(obj=aoi.lines, dsn=file.path(wd, dir.outputs, dir.shp, dir.meandir, paste0("aoi-", aoi.id, "-vectors.shp")), 
            layer=paste0("aoi-", aoi.id, "-vectors"), driver="ESRI Shapefile", overwrite_layer=TRUE)
   
   # Save current aoi vectors to list
@@ -328,7 +341,7 @@ for(aoi.id in aoi.spdf@data$Id){
 }
 
 # Save aoi spdf to shapefile
-writeOGR(obj=aoi.spdf, dsn=file.path(wd, dir.outputs, dir.shp, dir.aoi, "aoi-mean-directions.shp"), layer="aoi-mean-directions", 
+writeOGR(obj=aoi.spdf, dsn=file.path(wd, dir.outputs, dir.shp, dir.meandir, "aoi-mean-directions.shp"), layer="aoi-mean-directions", 
          driver="ESRI Shapefile", overwrite_layer=TRUE)
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -354,7 +367,7 @@ aoi.azimuts.count<-ggplot(data = aoi.summary, aes(x = azimut.name, y = count, fi
   scale_fill_manual(values=c("#00AFBB", "#E7B800", "#4B5F07", "#DA5F07"))
 aoi.azimuts.count
 
-ggsave(filename = file.path(wd, dir.outputs, dir.graphs, dir.aoi, "aoi-directions-count.png"), plot = aoi.azimuts.count, device = "png")
+ggsave(filename = file.path(wd, dir.outputs, dir.graphs, dir.meandir, "aoi-directions-count.png"), plot = aoi.azimuts.count, device = "png")
 
 # Histogram for directions within AOIS - RELATIVE VALUES
 aoi.azimuts.freq<-ggplot(data = aoi.summary, aes(x = azimut.name, y = freq.rel, fill = factor(aoi.id)))+
@@ -367,7 +380,7 @@ aoi.azimuts.freq<-ggplot(data = aoi.summary, aes(x = azimut.name, y = freq.rel, 
   scale_fill_manual(values=c("#00AFBB", "#E7B800", "#4B5F07", "#DA5F07"))
 aoi.azimuts.freq
 
-ggsave(filename = file.path(wd, dir.outputs, dir.graphs, dir.aoi, "aoi-directions-freq.png"), plot = aoi.azimuts.freq, device = "png")
+ggsave(filename = file.path(wd, dir.outputs, dir.graphs, dir.meandir, "aoi-directions-freq.png"), plot = aoi.azimuts.freq, device = "png")
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -389,7 +402,7 @@ aoi.azimuts.prior.count.yes<-ggplot(data = aoi.summary.prior %>% filter(prior ==
   scale_fill_manual(values=c("#00AFBB", "#E7B800", "#4B5F07", "#DA5F07"))
 aoi.azimuts.prior.count.yes
 
-ggsave(filename = file.path(wd, dir.outputs, dir.graphs, dir.aoi, "aoi-directions-count-prior-yes.png"), plot = aoi.azimuts.prior.count.yes, device = "png")
+ggsave(filename = file.path(wd, dir.outputs, dir.graphs, dir.meandir, "aoi-directions-count-prior-yes.png"), plot = aoi.azimuts.prior.count.yes, device = "png")
 
 # Histogram for directions within AOIS - ABSOLUTE VALUES
 aoi.azimuts.prior.count.no<-ggplot(data = aoi.summary.prior %>% filter(prior == "no"), aes(x = azimut.name, y = count, fill = factor(aoi.id)))+
@@ -402,7 +415,7 @@ aoi.azimuts.prior.count.no<-ggplot(data = aoi.summary.prior %>% filter(prior == 
   scale_fill_manual(values=c("#00AFBB", "#E7B800", "#4B5F07", "#DA5F07"))
 aoi.azimuts.prior.count.no
 
-ggsave(filename = file.path(wd, dir.outputs, dir.graphs, dir.aoi, "aoi-directions-count-prior-no.png"), plot = aoi.azimuts.prior.count.no, device = "png")
+ggsave(filename = file.path(wd, dir.outputs, dir.graphs, dir.meandir, "aoi-directions-count-prior-no.png"), plot = aoi.azimuts.prior.count.no, device = "png")
 
 # Histogram for directions within AOIS - RELATIVE VALUES
 aoi.azimuts.prior.freq.yes<-ggplot(data = aoi.summary.prior %>% filter(prior == "yes"), aes(x = azimut.name, y = freq.rel, fill = factor(aoi.id)))+
@@ -415,7 +428,7 @@ aoi.azimuts.prior.freq.yes<-ggplot(data = aoi.summary.prior %>% filter(prior == 
   scale_fill_manual(values=c("#00AFBB", "#E7B800", "#4B5F07", "#DA5F07"))
 aoi.azimuts.prior.freq.yes
 
-ggsave(filename = file.path(wd, dir.outputs, dir.graphs, dir.aoi, "aoi-directions-freq-prior-yes.png"), plot = aoi.azimuts.prior.freq.yes, device = "png")
+ggsave(filename = file.path(wd, dir.outputs, dir.graphs, dir.meandir, "aoi-directions-freq-prior-yes.png"), plot = aoi.azimuts.prior.freq.yes, device = "png")
 
 # Histogram for directions within AOIS - RELATIVE VALUES
 aoi.azimuts.prior.freq.no<-ggplot(data = aoi.summary.prior %>% filter(prior == "no"), aes(x = azimut.name, y = freq.rel, fill = factor(aoi.id)))+
@@ -428,20 +441,20 @@ aoi.azimuts.prior.freq.no<-ggplot(data = aoi.summary.prior %>% filter(prior == "
   scale_fill_manual(values=c("#00AFBB", "#E7B800", "#4B5F07", "#DA5F07"))
 aoi.azimuts.prior.freq.no
 
-ggsave(filename = file.path(wd, dir.outputs, dir.graphs, dir.aoi, "aoi-directions-freq-prior-no.png"), plot = aoi.azimuts.prior.freq.no, device = "png")
+ggsave(filename = file.path(wd, dir.outputs, dir.graphs, dir.meandir, "aoi-directions-freq-prior-no.png"), plot = aoi.azimuts.prior.freq.no, device = "png")
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Save tables -------------------------------------------------------------
 
 # Save aoi summaries to csv
-write.csv2(aoi.summary, file=file.path(wd, dir.outputs, dir.tables, "aoi-directions-summary.csv"))
-write.csv2(aoi.summary.prior, file=file.path(wd, dir.outputs, dir.tables, "aoi-directions-summary-prior.csv"))
+write.csv2(aoi.summary, file=file.path(wd, dir.outputs, dir.tables, dir.meandir, "aoi-directions-summary.csv"))
+write.csv2(aoi.summary.prior, file=file.path(wd, dir.outputs, dir.tables, dir.meandir, "aoi-directions-summary-prior.csv"))
 
-write.csv2(aoi.summary.count, file=file.path(wd, dir.outputs, dir.tables, "aoi-directions-summary-count.csv"))
-write.csv2(aoi.summary.freq, file=file.path(wd, dir.outputs, dir.tables, "aoi-directions-summary-freq.csv"))
+write.csv2(aoi.summary.count, file=file.path(wd, dir.outputs, dir.tables, dir.meandir, "aoi-directions-summary-count.csv"))
+write.csv2(aoi.summary.freq, file=file.path(wd, dir.outputs, dir.tables, dir.meandir, "aoi-directions-summary-freq.csv"))
 
-write.csv2(aoi.summary.prior.count, file=file.path(wd, dir.outputs, dir.tables, "aoi-directions-summary-prior-count.csv"))
-write.csv2(aoi.summary.prior.freq, file=file.path(wd, dir.outputs, dir.tables, "aoi-directions-summary-prior-freq.csv"))
+write.csv2(aoi.summary.prior.count, file=file.path(wd, dir.outputs, dir.tables, dir.meandir, "aoi-directions-summary-prior-count.csv"))
+write.csv2(aoi.summary.prior.freq, file=file.path(wd, dir.outputs, dir.tables, dir.meandir, "aoi-directions-summary-prior-freq.csv"))
 
 
