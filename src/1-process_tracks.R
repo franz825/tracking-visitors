@@ -53,7 +53,7 @@ dir.aoi<-"aoi"
 area.name<-"malia"
 
 # Delete outputs directory before running analysis
-delete.outputs<-TRUE
+delete.outputs<-FALSE
 
 # Extension of tracks in the input folder (.gpx or .shp)
 track.ext<-".shp"
@@ -131,7 +131,7 @@ dir.stops<-"stops"
 dir.centroids<-"centroids"
 dir.full<-"full"
 dir.speed<-"speed"
-dir.outputs<-paste0(area.name, '-', dir.outputs)
+dir.outputs<-paste0(dir.outputs, '-', area.name)
 
 # Delete outputs directory
 if(delete.outputs == TRUE){

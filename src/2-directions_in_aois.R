@@ -45,7 +45,7 @@ dir.outputs<-"outputs"
 dir.inputs<-"inputs"
 # Subfolders of inputs directory
 dir.tracks<-"tracks"
-dir.aoi<-"aoi"
+dir.aoi.dir<-"aoi-dir"
 
 # Variables ---------------------------------------------------------------
 
@@ -109,7 +109,7 @@ dir.tables<-"tables"
 dir.stops<-"stops"
 dir.centroids<-"centroids"
 dir.full<-"full"
-dir.outputs<-paste0(area.name, '-', dir.outputs)
+dir.outputs<-paste0(dir.outputs, '-', area.name)
 
 # Delete outputs directory
 if(delete.outputs == TRUE){
@@ -138,7 +138,7 @@ if(!dir.exists(file.path(wd, dir.outputs, dir.tables, dir.meandir))){
 # tracks.files<-list.files(file.path(wd, dir.inputs, dir.tracks), pattern=track.ext)
 
 # Read AOI file for mean direction computation
-aoi.spdf<-readOGR(dsn = file.path(wd, dir.inputs, dir.aoi, "aoi_for_mean_dir.shp"), stringsAsFactors = FALSE)
+aoi.spdf<-readOGR(dsn = file.path(wd, dir.inputs, dir.aoi.dir, "aoi_for_mean_dir.shp"), stringsAsFactors = FALSE)
 aoi.spdf<-spTransform(aoi.spdf, id.proj)
 
 # Read shapefile containing points data for all tracks
